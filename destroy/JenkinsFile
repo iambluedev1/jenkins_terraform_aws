@@ -1,0 +1,26 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Delete web') {
+            steps {
+                sh """
+                    #!/bin/bash
+                    cd deploy
+                    terraform init -backend-config="bucket=gombo-terraform-state" -backend-config="key=state-deploy-${params.project_name}-${params.deploy_env}.tfstate" -backend-config="region=eu-west-3" -reconfigure
+                    terraform destroy -auto-approve 
+                """
+            }
+        }
+        stage('Delete infra') {
+            steps {
+                sh """
+                    #!/bin/bash
+                    cd infra
+                    terraform init -backend-config="bucket=gombo-terraform-state" -backend-config="key=state-infra-${params.project_name}-${params.deploy_env}.tfstate" -backend-config="region=eu-west-3" -reconfigure
+                    terraform destroy -auto-approve 
+                """
+            }
+        }
+    }
+}

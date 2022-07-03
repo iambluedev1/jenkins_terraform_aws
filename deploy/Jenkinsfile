@@ -1,0 +1,36 @@
+pipeline {
+    agent any
+    stages {
+        stage('Récupération de la configuration Terraform') {
+            steps {
+                checkout(
+                    [
+                        $class: 'GitSCM', 
+                        branches: [[name: '*/master']], 
+                        doGenerateSubmoduleConfigurations: false, 
+                        extensions: [[$class: 'CleanBeforeCheckout']], 
+                        submoduleCfg: [], 
+                        userRemoteConfigs: [
+                            [
+                                credentialsId: 'git', 
+                                url: 'https://github.com/iambluedev1/jenkins_terraform_aws'
+                            ]
+                        ]
+                    ]
+                )
+            }
+        }
+        stage('Deploy Web with terraform') {
+            steps { 
+                sh """
+                    #!/bin/bash
+                    cd deploy
+                    terraform init -backend-config="bucket=gombo-terraform-state" -backend-config="key=state-deploy-${params.project_name}-${params.deploy_env}.tfstate" -backend-config="region=eu-west-3" -reconfigure
+                    terraform apply -auto-approve \
+                        -var 'deploy_env=${params.deploy_env}' \
+                        -var 'project_name=${params.project_name}' \
+                """
+            }
+        }
+    }
+}
